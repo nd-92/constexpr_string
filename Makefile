@@ -9,9 +9,16 @@ WFLAGS = -Werror -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wforma
 CXXFLAGS = $(OPTFLAGS) $(CXXSTANDARD) $(MFLAGS) $(WFLAGS) $(EXTRACXXFLAGS)
 
 default:
-	clear
-	make clean
-	$(CXX) $(CXXFLAGS) stringTest.C -o stringTest
 
 clean:
 	rm -rf stringTest
+
+install:
+	cp constexpr_string.H /usr/local/include
+
+uninstall:
+	rm /usr/local/include/constexpr_string.H
+
+makeTest:
+	rm -rf stringTest
+	$(CXX) $(CXXFLAGS) stringTest.C -o stringTest

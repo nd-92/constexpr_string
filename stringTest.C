@@ -1,6 +1,4 @@
 #include <iostream>
-#include <cstring>
-#include <cstdint>
 #include "constexpr_string.H"
 
 int main()

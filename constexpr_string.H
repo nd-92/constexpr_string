@@ -2,8 +2,9 @@
 #define CONSTEXPR_STRING_H
 
 #include <algorithm>
-#include <string_view>
 #include <array>
+#include <cstdint>
+#include <string_view>
 #include <type_traits>
 
 // Returns the length of a const char*
@@ -12,7 +13,7 @@
     return std::string::traits_type::length(s);
 }
 
-// Returns the string length for a signed integer in base 10
+// Returns the string length for an integral constant of type T in base 10
 template <typename T, const T value_>
 [[nodiscard]] consteval std::size_t constexpr_strlen(const std::integral_constant<T, value_> value)
 {
@@ -79,7 +80,7 @@ template <std::size_t... sizes>
     return result;
 }
 
-// Converts an unsigned integer to a char array
+// Converts an integral constant of type T to a char array
 template <typename T, const T value_, const std::size_t length_ = constexpr_strlen(std::integral_constant<T, value_>())>
 [[nodiscard]] consteval std::array<char, length_> integral_to_char_array(const std::integral_constant<T, value_> value)
 {
