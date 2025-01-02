@@ -19,6 +19,6 @@ install:
 uninstall:
 	rm /usr/local/include/constexpr_string.H
 
-makeTest:
+stringTest:
 	rm -rf stringTest
 	$(CXX) $(CXXFLAGS) stringTest.C -o stringTest

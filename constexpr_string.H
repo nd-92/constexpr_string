@@ -23,21 +23,22 @@ template <typename T, const T value_>
         return 2;
     }
 
+    // Store the integer value and the total number of chars
     T n = value();
-
     std::size_t i = 1;
-    // Add an extra space for negative vals if the type is signed
+
+    // The type is signed
     if constexpr (std::is_signed_v<T>)
     {
         // Handle case of signed and negative
         if constexpr (value() < 0)
         {
+            // Add an extra space for negative values for the - sign
             i = i + 1;
             while (n < 0)
             {
-                // Divide n by the base
+                // Divide n by the base, then increment the digit counter
                 n = n / 10;
-                // Increment the digit counter
                 i++;
             }
         }
@@ -46,20 +47,19 @@ template <typename T, const T value_>
         {
             while (n > 0)
             {
-                // Divide n by the base
+                // Divide n by the base, then increment the digit counter
                 n = n / 10;
-                // Increment the digit counter
                 i++;
             }
         }
     }
-    else // Otherwise the type is unsigned and positive
+    // Otherwise the type is unsigned and positive
+    else
     {
         while (n > 0)
         {
-            // Divide n by the base
+            // Divide n by the base, then increment the digit counter
             n = n / 10;
-            // Increment the digit counter
             i++;
         }
     }
@@ -90,35 +90,48 @@ template <typename T, const T value_, const std::size_t length_ = constexpr_strl
         return std::array<char, 2>{"0"[0], 0};
     }
 
-    // Value must be positive if not zero
+    // Allocate memory
     std::array<char, length_> buffer;
 
+    // The value is negative
     if constexpr (value() < 0)
     {
+        // Get the absolute value of the integer
         std::size_t i_ = static_cast<std::size_t>(-value());
+
+        // First character is the minus sign
         buffer[0] = "-"[0];
+
+        // Loop over the digits
         for (std::size_t k = length_ - 1; k > 1; k--)
         {
             buffer[k - 1] = "0123456789"[i_ % 10];
             i_ = i_ / 10;
         }
+
+        // Terminate with null
         buffer[length_ - 1] = 0;
+
         return buffer;
     }
     // Value must be positive if nether zero nor negative
     else
     {
+        // Get the absolute value of the integer
         std::size_t i_ = value();
+
+        // Loop over the digits
         for (std::size_t k = length_ - 1; k > 0; k--)
         {
             buffer[k - 1] = "0123456789"[i_ % 10];
             i_ = i_ / 10;
         }
+
+        // Terminate with null
         buffer[length_ - 1] = 0;
+
         return buffer;
     }
-
-    return buffer;
 }
 
 template <const std::size_t N>
@@ -195,11 +208,11 @@ template <const std::size_t size_1, const std::size_t size_2>
     }
 
     // Strings must be identical up to this point, so check sizes
-    if (size_1 > size_2)
+    if constexpr (size_1 > size_2)
     {
         return 1;
     }
-    else if (size_1 < size_2)
+    else if constexpr (size_1 < size_2)
     {
         return -1;
     }
