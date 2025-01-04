@@ -8,14 +8,14 @@
 #include <type_traits>
 
 // Returns the length of a const char*
-[[nodiscard]] consteval std::size_t constexpr_strlen(const char *s)
+[[nodiscard]] consteval std::size_t constexpr_strlen(const char *s) noexcept
 {
     return std::string::traits_type::length(s);
 }
 
 // Returns the string length for an integral constant of type T in base 10
 template <typename T, const T value_>
-[[nodiscard]] consteval std::size_t constexpr_strlen(const std::integral_constant<T, value_> value)
+[[nodiscard]] consteval std::size_t constexpr_strlen(const std::integral_constant<T, value_> value) noexcept
 {
     // Special case for value = 0
     if constexpr (value() == 0)
@@ -70,7 +70,7 @@ template <typename T, const T value_>
 
 // Catenates an arbitrary number of char arrays
 template <std::size_t... sizes>
-[[nodiscard]] inline consteval auto constexpr_arrcat(const std::array<char, sizes> &...arrays)
+[[nodiscard]] inline consteval auto constexpr_arrcat(const std::array<char, sizes> &...arrays) noexcept
 {
     std::array<char, ((sizes - 1) + ...) + 1> result;
     std::size_t index{};
@@ -82,7 +82,7 @@ template <std::size_t... sizes>
 
 // Converts an integral constant of type T to a char array
 template <typename T, const T value_, const std::size_t length_ = constexpr_strlen(std::integral_constant<T, value_>())>
-[[nodiscard]] consteval std::array<char, length_> integral_to_char_array(const std::integral_constant<T, value_> value)
+[[nodiscard]] consteval std::array<char, length_> integral_to_char_array(const std::integral_constant<T, value_> value) noexcept
 {
     // Value is zero
     if constexpr (value() == 0)
@@ -139,53 +139,53 @@ class constexpr_string
 {
 public:
     // Constructor taking array of chars
-    [[nodiscard]] consteval constexpr_string(const char (&a)[N]) : charString_(std::to_array(a)) {};
+    [[nodiscard]] consteval constexpr_string(const char (&a)[N]) noexcept : charString_(std::to_array(a)) {};
 
     // Constructor taking a std::array
-    [[nodiscard]] consteval constexpr_string(const std::array<char, N> &a) : charString_(a) {};
+    [[nodiscard]] consteval constexpr_string(const std::array<char, N> &a) noexcept : charString_(a) {};
 
     // Returns the string length
-    [[nodiscard]] consteval std::size_t length() const
+    [[nodiscard]] consteval std::size_t length() const noexcept
     {
         return charString_.size();
     }
 
     // Returns a reference to the underlying char array
-    [[nodiscard]] consteval const std::array<char, N> &ref() const
+    [[nodiscard]] consteval const std::array<char, N> &ref() const noexcept
     {
         return charString_;
     }
 
     // Returns a string_view
-    [[nodiscard]] consteval const std::string_view string_view() const
+    [[nodiscard]] consteval const std::string_view string_view() const noexcept
     {
         return std::string_view(charString_.begin(), charString_.end());
     }
 
     // Add two strings
     template <const std::size_t size>
-    [[nodiscard]] consteval auto operator+(const constexpr_string<size> &s) const
+    [[nodiscard]] consteval auto operator+(const constexpr_string<size> &s) const noexcept
     {
         return constexpr_string<N + size - 1>(constexpr_arrcat(charString_, s.ref()));
     }
 
     // Add a string to an array of chars
     template <const std::size_t size>
-    [[nodiscard]] consteval auto operator+(const char (&b)[size]) const
+    [[nodiscard]] consteval auto operator+(const char (&b)[size]) const noexcept
     {
         return constexpr_string<N + size - 1>(constexpr_arrcat(charString_, std::to_array(b)));
     }
 
     // Add a string to an integral constant
     template <typename T, const T value_, const std::size_t size = constexpr_strlen(std::integral_constant<T, value_>())>
-    [[nodiscard]] consteval auto operator+(const std::integral_constant<T, value_> val) const
+    [[nodiscard]] consteval auto operator+(const std::integral_constant<T, value_> val) const noexcept
     {
         return constexpr_string<N + size - 1>(constexpr_arrcat(charString_, integral_to_char_array(val)));
     }
 
     // Overload the << operator
     template <const std::size_t size>
-    friend inline constexpr std::ostream &operator<<(std::ostream &os, const constexpr_string<size> &s);
+    friend inline constexpr std::ostream &operator<<(std::ostream &os, const constexpr_string<size> &s) noexcept;
 
 private:
     // Stores the string as an array of chars
@@ -193,7 +193,7 @@ private:
 };
 
 template <const std::size_t size>
-[[nodiscard]] std::ostream inline constexpr &operator<<(std::ostream &os, const constexpr_string<size> &s)
+[[nodiscard]] std::ostream inline constexpr &operator<<(std::ostream &os, const constexpr_string<size> &s) noexcept
 {
     os << &s.charString_[0];
     return os;
@@ -201,7 +201,7 @@ template <const std::size_t size>
 
 // Compares two strings at compile time
 template <const std::size_t size_1, const std::size_t size_2>
-[[nodiscard]] consteval int constexpr_strcmp(const constexpr_string<size_1> &s_1, const constexpr_string<size_2> &s_2)
+[[nodiscard]] consteval int constexpr_strcmp(const constexpr_string<size_1> &s_1, const constexpr_string<size_2> &s_2) noexcept
 {
     // Get the minimum of size_1 and size_2
     // const std::size_t N = std::min(size_1, size_2);
@@ -241,7 +241,7 @@ template <const std::size_t size_1, const std::size_t size_2>
 
 // Takes an integral constant of type T and converts it to a constexpr_string
 template <typename T, const T value_, const std::size_t N = constexpr_strlen(std::integral_constant<T, value_>())>
-[[nodiscard]] consteval constexpr_string<N> to_constexpr_string(const std::integral_constant<T, value_> value)
+[[nodiscard]] consteval constexpr_string<N> to_constexpr_string(const std::integral_constant<T, value_> value) noexcept
 {
     return constexpr_string(integral_to_char_array(value));
 }
