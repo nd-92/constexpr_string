@@ -169,6 +169,13 @@ public:
         return constexpr_string<N + size - 1>(constexpr_arrcat(charString_, s.ref()));
     }
 
+    // Add a string to an array of chars
+    template <const std::size_t size>
+    [[nodiscard]] consteval auto operator+(const char (&b)[size]) const
+    {
+        return constexpr_string<N + size - 1>(constexpr_arrcat(charString_, std::to_array(b)));
+    }
+
     // Add a string to an integral constant
     template <typename T, const T value_, const std::size_t size = constexpr_strlen(std::integral_constant<T, value_>())>
     [[nodiscard]] consteval auto operator+(const std::integral_constant<T, value_> val) const
@@ -176,10 +183,21 @@ public:
         return constexpr_string<N + size - 1>(constexpr_arrcat(charString_, integral_to_char_array(val)));
     }
 
+    // Overload the << operator
+    template <const std::size_t size>
+    friend inline constexpr std::ostream &operator<<(std::ostream &os, const constexpr_string<size> &s);
+
 private:
     // Stores the string as an array of chars
     const std::array<char, N> charString_;
 };
+
+template <const std::size_t size>
+[[nodiscard]] std::ostream inline constexpr &operator<<(std::ostream &os, const constexpr_string<size> &s)
+{
+    os << &s.charString_[0];
+    return os;
+}
 
 // Compares two strings at compile time
 template <const std::size_t size_1, const std::size_t size_2>
@@ -219,6 +237,13 @@ template <const std::size_t size_1, const std::size_t size_2>
 
     // Otherwise strings are a match, so return 0
     return 0;
+}
+
+// Takes an integral constant of type T and converts it to a constexpr_string
+template <typename T, const T value_, const std::size_t N = constexpr_strlen(std::integral_constant<T, value_>())>
+[[nodiscard]] consteval constexpr_string<N> to_constexpr_string(const std::integral_constant<T, value_> value)
+{
+    return constexpr_string(integral_to_char_array(value));
 }
 
 #endif
