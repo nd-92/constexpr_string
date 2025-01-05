@@ -138,20 +138,23 @@ template <const std::size_t N>
 class constexpr_string
 {
 public:
-    // Constructor taking array of chars
-    [[nodiscard]] consteval constexpr_string(const char (&a)[N]) noexcept : charString_(std::to_array(a)) {};
+    // Constructor taking an array of chars
+    [[nodiscard]] consteval explicit constexpr_string(const char (&s)[N]) noexcept : charString_(std::to_array(s)) {};
 
     // Constructor taking a std::array
-    [[nodiscard]] consteval constexpr_string(const std::array<char, N> &a) noexcept : charString_(a) {};
+    [[nodiscard]] consteval explicit constexpr_string(const std::array<char, N> &s) noexcept : charString_(s) {};
+
+    // Construct from copy
+    [[nodiscard]] consteval explicit constexpr_string(const constexpr_string<N> &s) noexcept : charString_(s.data()) {};
 
     // Returns the string length
     [[nodiscard]] consteval std::size_t length() const noexcept
     {
-        return charString_.size();
+        return N;
     }
 
     // Returns a reference to the underlying char array
-    [[nodiscard]] consteval const std::array<char, N> &ref() const noexcept
+    [[nodiscard]] consteval const std::array<char, N> &data() const noexcept
     {
         return charString_;
     }
@@ -163,37 +166,56 @@ public:
     }
 
     // Add two strings
-    template <const std::size_t size>
-    [[nodiscard]] consteval auto operator+(const constexpr_string<size> &s) const noexcept
+    template <const std::size_t size_>
+    [[nodiscard]] consteval constexpr_string<N + size_ - 1> operator+(const constexpr_string<size_> &s) const noexcept
     {
-        return constexpr_string<N + size - 1>(constexpr_arrcat(charString_, s.ref()));
+        return constexpr_string<N + size_ - 1>(constexpr_arrcat(charString_, s.data()));
     }
 
     // Add a string to an array of chars
-    template <const std::size_t size>
-    [[nodiscard]] consteval auto operator+(const char (&b)[size]) const noexcept
+    template <const std::size_t size_>
+    [[nodiscard]] consteval constexpr_string<N + size_ - 1> operator+(const char (&s)[size_]) const noexcept
     {
-        return constexpr_string<N + size - 1>(constexpr_arrcat(charString_, std::to_array(b)));
+        return constexpr_string<N + size_ - 1>(constexpr_arrcat(charString_, std::to_array(s)));
+    }
+
+    // Add a string to a std::array of chars
+    template <const std::size_t size_>
+    [[nodiscard]] consteval constexpr_string<N + size_ - 1> operator+(const std::array<char, size_> s) const noexcept
+    {
+        return constexpr_string<N + size_ - 1>(constexpr_arrcat(charString_, s));
     }
 
     // Add a string to an integral constant
-    template <typename T, const T value_, const std::size_t size = constexpr_strlen(std::integral_constant<T, value_>())>
-    [[nodiscard]] consteval auto operator+(const std::integral_constant<T, value_> val) const noexcept
+    template <typename T, const T value_, const std::size_t size_ = constexpr_strlen(std::integral_constant<T, value_>())>
+    [[nodiscard]] consteval constexpr_string<N + size_ - 1> operator+(const std::integral_constant<T, value_> value) const noexcept
     {
-        return constexpr_string<N + size - 1>(constexpr_arrcat(charString_, integral_to_char_array(val)));
+        return constexpr_string<N + size_ - 1>(constexpr_arrcat(charString_, integral_to_char_array(value)));
     }
 
     // Overload the << operator
-    template <const std::size_t size>
-    friend inline constexpr std::ostream &operator<<(std::ostream &os, const constexpr_string<size> &s) noexcept;
+    template <const std::size_t size_>
+    friend inline constexpr std::ostream &operator<<(std::ostream &os, const constexpr_string<size_> &s) noexcept;
+
+    // Overload the [] operator
+    [[nodiscard]] consteval char operator[](const std::size_t index) const noexcept
+    {
+        return charString_[index];
+    }
+
+    // Overload the () operator
+    [[nodiscard]] consteval std::array<char, 2> operator()(const std::size_t index) const noexcept
+    {
+        return std::array<char, 2>{charString_[index], 0};
+    }
 
 private:
     // Stores the string as an array of chars
     const std::array<char, N> charString_;
 };
 
-template <const std::size_t size>
-[[nodiscard]] std::ostream inline constexpr &operator<<(std::ostream &os, const constexpr_string<size> &s) noexcept
+template <const std::size_t size_>
+[[nodiscard]] std::ostream inline constexpr &operator<<(std::ostream &os, const constexpr_string<size_> &s) noexcept
 {
     os << &s.charString_[0];
     return os;
@@ -210,17 +232,17 @@ template <const std::size_t size_1, const std::size_t size_2>
     for (std::size_t i = 0; i < std::min(size_1, size_2); i++)
     {
         // Is element i of s_1 greater than s_2?
-        if (s_1.ref()[i] > s_2.ref()[i])
+        if (s_1.data()[i] > s_2.data()[i])
         {
             // Return s_1[i] - s_2[i]
-            // return std::abs(s_1.ref()[i] - s_2.ref()[i]);
+            // return std::abs(s_1.data()[i] - s_2.data()[i]);
             return 1;
         }
         // Is element i of s_2 greater than s_1?
-        else if (s_2.ref()[i] > s_1.ref()[i])
+        else if (s_2.data()[i] > s_1.data()[i])
         {
             // Return s_2[i] - s_1[i]
-            // return -1 * std::abs(s_1.ref()[i] - s_2.ref()[i]);
+            // return -1 * std::abs(s_1.data()[i] - s_2.data()[i]);
             return -1;
         }
     }
@@ -240,10 +262,85 @@ template <const std::size_t size_1, const std::size_t size_2>
 }
 
 // Takes an integral constant of type T and converts it to a constexpr_string
-template <typename T, const T value_, const std::size_t N = constexpr_strlen(std::integral_constant<T, value_>())>
-[[nodiscard]] consteval constexpr_string<N> to_constexpr_string(const std::integral_constant<T, value_> value) noexcept
+template <typename T, const T value_, const std::size_t size_ = constexpr_strlen(std::integral_constant<T, value_>())>
+[[nodiscard]] consteval constexpr_string<size_> constexpr_itoa(const std::integral_constant<T, value_> value) noexcept
 {
     return constexpr_string(integral_to_char_array(value));
+}
+
+template <const std::size_t size_>
+[[nodiscard]] consteval constexpr_string<size_> constexpr_strcopy(const constexpr_string<size_> &s) noexcept
+{
+    return constexpr_string(s);
+}
+
+// Find out if a string contains a particular character
+template <const std::size_t size_>
+[[nodiscard]] consteval bool constexpr_strcontains(const constexpr_string<size_> &s, const char *character) noexcept
+{
+    // Loop over the characters, return true if found
+    for (std::size_t i = 0; i < size_; i++)
+    {
+        if (s[i] == character[0])
+        {
+            return true;
+        }
+    }
+
+    // Otherwise s does not contain character
+    return false;
+}
+
+template <const std::size_t size_>
+[[nodiscard]] consteval bool constexpr_strcontains(const constexpr_string<size_> &s, const char character) noexcept
+{
+    // Loop over the characters, return true if found
+    for (std::size_t i = 0; i < size_; i++)
+    {
+        if (s[i] == character)
+        {
+            return true;
+        }
+    }
+
+    // Otherwise s does not contain character
+    return false;
+}
+
+// Returns an std::size_t corresponding to the first occurrence of character in s
+// If character is not found, returns an std::size_t pointing to the end of s, i.e. the null character
+template <const std::size_t size_>
+[[nodiscard]] consteval std::size_t constexpr_strchr(const constexpr_string<size_> &s, const char *character) noexcept
+{
+    // Loop over the characters, return the index if found
+    for (std::size_t i = 0; i < size_; i++)
+    {
+        if (s[i] == character[0])
+        {
+            return i;
+        }
+    }
+
+    // Otherwise return the end of s
+    return size_ - 1;
+}
+
+// Returns an std::size_t corresponding to the first occurrence of character in s
+// If character is not found, returns an std::size_t pointing to the end of s, i.e. the null character
+template <const std::size_t size_>
+[[nodiscard]] consteval std::size_t constexpr_strchr(const constexpr_string<size_> &s, const char character) noexcept
+{
+    // Loop over the characters, return the index if found
+    for (std::size_t i = 0; i < size_; i++)
+    {
+        if (s[i] == character)
+        {
+            return i;
+        }
+    }
+
+    // Otherwise return the end of s
+    return size_ - 1;
 }
 
 #endif
