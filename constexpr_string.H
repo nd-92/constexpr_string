@@ -70,7 +70,7 @@ template <typename T, const T value_>
 
 // Catenates an arbitrary number of char arrays
 template <std::size_t... sizes>
-[[nodiscard]] inline consteval auto constexpr_arrcat(const std::array<char, sizes> &...arrays) noexcept
+[[nodiscard]] inline consteval std::array<char, ((sizes - 1) + ...) + 1> constexpr_arrcat(const std::array<char, sizes> &...arrays) noexcept
 {
     std::array<char, ((sizes - 1) + ...) + 1> result;
     std::size_t index{};
@@ -207,6 +207,12 @@ public:
     [[nodiscard]] consteval std::array<char, 2> operator()(const std::size_t index) const noexcept
     {
         return std::array<char, 2>{charString_[index], 0};
+    }
+
+    // Return a c string
+    [[nodiscard]] consteval const char *c_str() const noexcept
+    {
+        return &charString_[0];
     }
 
 private:
